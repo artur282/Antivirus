@@ -62,7 +62,7 @@ Antivirus Python es una solución de seguridad de código abierto que combina la
 1. Clona el repositorio:
 
    ```bash
-   git clone https://github.com/tuusuario/antivirus-python.git
+   git clone https://github.com/artur282/Antivirus.git
    cd antivirus-python
    ```
 
@@ -79,6 +79,8 @@ Antivirus Python es una solución de seguridad de código abierto que combina la
    ```bash
    pip install -r requirements.txt
    ```
+
+4. Desconprimir virus_data.db.7z
 
 ## 🚀 Uso
 
