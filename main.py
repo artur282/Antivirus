@@ -92,10 +92,10 @@ class AntivirusApp:
         self.frame.columnconfigure(3, weight=1)
         self.frame.rowconfigure(3, weight=1)
 
-        # Conexión a la base de datos
+        # Conexión a la base de datos para el hilo principal
         try:
-            self.db_connection = sqlite3.connect("virus_data.db")
-            self.create_tables()
+            self.db_connection = sqlite3.connect("virus_data.db", check_same_thread=False) # Re-added connection for main thread
+            self.create_tables() # This needs self.db_connection
         except sqlite3.Error as e:
             messagebox.showerror("Error", f"No se pudo conectar a la base de datos: {e}")
             self.db_connection = None
@@ -126,12 +126,17 @@ class AntivirusApp:
 
     def log_scan_result(self, file_path, is_infected):
         # Registrar el resultado del escaneo en la base de datos con manejo de errores
+        db_conn = None # Initialize db_conn to None
         try:
-            cursor = self.db_connection.cursor()
+            db_conn = sqlite3.connect("virus_data.db") # Create a new connection
+            cursor = db_conn.cursor()
             cursor.execute("INSERT INTO scan_history (file_path, is_infected) VALUES (?, ?)", (file_path, is_infected))
-            self.db_connection.commit()
+            db_conn.commit()
         except sqlite3.Error as e:
-            print(f"Error al registrar el resultado del escaneo: {e}")
+            print(f"Error al registrar el resultado del escaneo (log_scan_result): {e}") # Added context to print
+        finally:
+            if db_conn:
+                db_conn.close() # Close the connection in the finally block
 
     def show_scan_history(self):
         # Mostrar el historial de escaneos con manejo de errores
@@ -328,27 +333,32 @@ class AntivirusApp:
     # Método para verificar si un archivo es un virus comparando sus hashes con la base de datos
     def check_virus(self, hashes):
         # Verificar si un archivo es un virus con manejo de errores
+        db_conn = None  # Initialize db_conn to None
         try:
-            cursor = self.db_connection.cursor()
+            db_conn = sqlite3.connect("virus_data.db") # Create a new connection
+            cursor = db_conn.cursor()
             
             # Verificar si el hash MD5 está en la tabla de virus
-            cursor.execute("SELECT COUNT(*) FROM virus_md5 WHERE hash = ?", (hashes['md5'],))
+            cursor.execute("SELECT COUNT(*) FROM virus_md5 WHERE md5_hash = ?", (hashes['md5'],))
             md5_count = cursor.fetchone()[0]
             
             # Verificar si el hash SHA1 está en la tabla de virus
-            cursor.execute("SELECT COUNT(*) FROM virus_sha1 WHERE hash = ?", (hashes['sha1'],))
+            cursor.execute("SELECT COUNT(*) FROM virus_sha1 WHERE sha1_hash = ?", (hashes['sha1'],))
             sha1_count = cursor.fetchone()[0]
             
             # Verificar si el hash SHA256 está en la tabla de virus
-            cursor.execute("SELECT COUNT(*) FROM virus_sha256 WHERE hash = ?", (hashes['sha256'],))
+            cursor.execute("SELECT COUNT(*) FROM virus_sha256 WHERE sha256_hash = ?", (hashes['sha256'],))
             sha256_count = cursor.fetchone()[0]
             
             # Retornar True si alguno de los hashes coincide con un registro en la base de datos
             return md5_count > 0 or sha1_count > 0 or sha256_count > 0
         except sqlite3.Error as e:
             # Manejo de errores en caso de problemas con la base de datos
-            print(f"Error en base de datos: {e}")
+            print(f"Error en base de datos (check_virus): {e}") # Added context to print
             return False
+        finally:
+            if db_conn:
+                db_conn.close() # Close the connection in the finally block
 
     # Método para escanear un archivo seleccionado por el usuario
     def scan_file(self):
@@ -675,7 +685,7 @@ class AntivirusApp:
 
     def __del__(self):
         # Cerrar la conexión a la base de datos de forma segura
-        if self.db_connection:
+        if hasattr(self, 'db_connection') and self.db_connection:
             self.db_connection.close()
 
 if __name__ == "__main__":
