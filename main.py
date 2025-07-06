@@ -4,8 +4,8 @@ from tkinter import ttk, filedialog, messagebox
 import hashlib
 import sqlite3
 import os
+import sys
 from threading import Thread
-import matplotlib.pyplot as plt # type: ignore
 from concurrent.futures import ThreadPoolExecutor
 import platform
 from reportlab.lib.pagesizes import letter # type: ignore
@@ -14,17 +14,30 @@ import csv
 from cryptography.fernet import Fernet # type: ignore
 from PIL import Image, ImageTk  # Para procesamiento de imágenes
 
-class AntivirusApp:
+def resource_path(relative_path):
+    """Obtener la ruta absoluta de un recurso, funciona tanto en desarrollo como en ejecutable"""
+    try:
+        # PyInstaller crea una carpeta temporal y almacena la ruta en _MEIPASS
+        base_path = getattr(sys, '_MEIPASS', None)
+        if base_path is None:
+            raise AttributeError
+    except AttributeError:
+        # Si no estamos en un ejecutable, usar la ruta del script
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    return os.path.join(base_path, relative_path)
+
+class BotApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Antivirus Python - Protección Avanzada")
+        self.root.title("Bot Python - Protección Avanzada")
         self.root.geometry("900x650")
         self.root.resizable(True, True)
         self.root.minsize(800, 600)
 
         # Configurar icono de la ventana si existe
         try:
-            self.root.iconphoto(False, tk.PhotoImage(file="img/icon.png"))
+            self.root.iconphoto(False, tk.PhotoImage(file=resource_path("img/icono.png")))
         except:
             pass
 
@@ -94,31 +107,104 @@ class AntivirusApp:
         shadow_frame = tk.Frame(self.main_frame, width=2, bg=self.get_color('border'))
         shadow_frame.pack(side=tk.LEFT, fill=tk.Y)
         
-        # Agregar logo en la parte superior del sidebar usando PIL
+        # Agregar logo en la parte superior del sidebar usando PIL con múltiples métodos de fallback
+        self.logo_img = None
+        logo_loaded = False
+        
+        # Método 1: Usar resource_path (recomendado para ejecutables)
         try:
-            # Cargar la imagen con PIL
-            original_img = Image.open("img/logo.png")
+            logo_path = resource_path("img/logo.png")
             
-            # Calcular el nuevo tamaño manteniendo la proporción
-            width = 160  # Ancho deseado (un poco menos que el ancho de la barra lateral)
-            ratio = width / float(original_img.width)
-            height = int(float(original_img.height) * ratio)
-            
-            # Redimensionar imagen
-            resized_img = original_img.resize((width, height), Image.LANCZOS)
-            
-            # Convertir la imagen de PIL a formato compatible con Tkinter
-            self.logo_img = ImageTk.PhotoImage(resized_img)
-            
-            # Crear un frame para centrar el logo con fondo del mismo color
-            logo_frame = tk.Frame(self.menu_frame, bg=self.get_color('surface'))
-            logo_frame.pack(pady=(20, 15))
-
+            if os.path.exists(logo_path):
+                # Cargar la imagen con PIL
+                original_img = Image.open(logo_path)
+                
+                # Calcular el nuevo tamaño manteniendo la proporción
+                width = 120  # Ancho deseado (más proporcionado para la barra lateral)
+                ratio = width / float(original_img.width)
+                height = int(float(original_img.height) * ratio)
+                
+                # Redimensionar imagen
+                resized_img = original_img.resize((width, height), Image.Resampling.LANCZOS)
+                
+                # Convertir la imagen de PIL a formato compatible con Tkinter
+                self.logo_img = ImageTk.PhotoImage(resized_img)
+                logo_loaded = True
+            else:
+                pass  # Archivo no encontrado
+        except Exception as e:
+            pass  # Error al cargar con resource_path
+        
+        # Método 2: Fallback usando ruta relativa directa
+        if not logo_loaded:
+            try:
+                direct_path = "img/logo.png"
+                
+                if os.path.exists(direct_path):
+                    original_img = Image.open(direct_path)
+                    width = 120
+                    ratio = width / float(original_img.width)
+                    height = int(float(original_img.height) * ratio)
+                    resized_img = original_img.resize((width, height), Image.Resampling.LANCZOS)
+                    self.logo_img = ImageTk.PhotoImage(resized_img)
+                    logo_loaded = True
+                else:
+                    pass  # Logo no encontrado con ruta directa
+            except Exception as e:
+                pass  # Error al cargar logo con ruta directa
+        
+        # Método 3: Usar tk.PhotoImage como fallback (más compatible con ejecutables)
+        if not logo_loaded:
+            try:
+                # Intentar con tk.PhotoImage directamente
+                logo_path = resource_path("img/logo.png")
+                if os.path.exists(logo_path):
+                    # Cargar imagen original
+                    original_photo = tk.PhotoImage(file=logo_path)
+                    
+                    # Redimensionar con tk.PhotoImage (método más simple)
+                    # Calcular factor de reducción
+                    original_width = original_photo.width()
+                    target_width = 120
+                    if original_width > target_width:
+                        factor = max(1, original_width // target_width)
+                        self.logo_img = original_photo.subsample(factor)
+                    else:
+                        self.logo_img = original_photo
+                        
+                    logo_loaded = True
+                else:
+                    # Intentar con ruta directa
+                    if os.path.exists("img/logo.png"):
+                        original_photo = tk.PhotoImage(file="img/logo.png")
+                        original_width = original_photo.width()
+                        target_width = 120
+                        if original_width > target_width:
+                            factor = max(1, original_width // target_width)
+                            self.logo_img = original_photo.subsample(factor)
+                        else:
+                            self.logo_img = original_photo
+                        logo_loaded = True
+            except Exception as e:
+                pass  # Error al cargar logo con tk.PhotoImage
+        
+        # Crear el frame del logo y mostrar si se cargó
+        logo_frame = tk.Frame(self.menu_frame, bg=self.get_color('surface'))
+        logo_frame.pack(pady=(20, 15))
+        
+        if logo_loaded and self.logo_img:
             # Mostrar el logo
             logo_label = tk.Label(logo_frame, image=self.logo_img, bg=self.get_color('surface'))
             logo_label.pack()
-        except Exception as e:
-            print(f"Error al cargar la imagen del logo: {e}")
+        else:
+            # Mostrar un placeholder de texto si no se pudo cargar el logo
+            placeholder_label = tk.Label(logo_frame, 
+                                       text="🛡️ ANTIVIRUS\nBOT", 
+                                       font=("Segoe UI", 14, "bold"),
+                                       bg=self.get_color('surface'),
+                                       fg=self.get_color('text_primary'),
+                                       justify=tk.CENTER)
+            placeholder_label.pack()
 
         # Panel derecho para el contenido
         self.content_frame = ttk.Frame(self.main_frame, padding=25, style='Modern.TFrame')
@@ -397,7 +483,7 @@ class AntivirusApp:
         title_frame.pack(fill=tk.X, pady=(0, 20))
 
         title_label = tk.Label(title_frame,
-                              text="🛡️ Centro de Control Antivirus",
+                              text="🛡️ Centro de Control Bot",
                               font=("Segoe UI", 16, "bold"),
                               bg=self.get_color('background'),
                               fg=self.get_color('text_primary'))
@@ -620,7 +706,7 @@ class AntivirusApp:
 
         # Conexión a la base de datos para el hilo principal
         try:
-            self.db_connection = sqlite3.connect("virus_data.db", check_same_thread=False) # Re-added connection for main thread
+            self.db_connection = sqlite3.connect(resource_path("virus_data.db"), check_same_thread=False) # Re-added connection for main thread
             self.create_tables() # This needs self.db_connection
         except sqlite3.Error as e:
             messagebox.showerror("Error", f"No se pudo conectar a la base de datos: {e}")
@@ -628,7 +714,7 @@ class AntivirusApp:
 
         # Variable para almacenar la lista de archivos a escanear
         self.file_list = []
-        self.stop_scan = False
+        self.scan_stopped = False
         self.collection_cancelled = False
 
         # Generar una clave de cifrado (esto debe hacerse una vez y guardarse de forma segura)
@@ -695,6 +781,8 @@ class AntivirusApp:
     def create_tables(self):
         # Crear tablas necesarias en la base de datos con manejo de errores
         try:
+            if self.db_connection is None:
+                return
             cursor = self.db_connection.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS scan_history (
@@ -712,7 +800,7 @@ class AntivirusApp:
         # Registrar el resultado del escaneo en la base de datos con manejo de errores
         db_conn = None # Initialize db_conn to None
         try:
-            db_conn = sqlite3.connect("virus_data.db") # Create a new connection
+            db_conn = sqlite3.connect(resource_path("virus_data.db")) # Create a new connection
             cursor = db_conn.cursor()
             cursor.execute("INSERT INTO scan_history (file_path, is_infected) VALUES (?, ?)", (file_path, is_infected))
             db_conn.commit()
@@ -726,14 +814,14 @@ class AntivirusApp:
         """Mostrar el historial de escaneos con diseño moderno"""
         try:
             history_window = tk.Toplevel(self.root)
-            history_window.title("📊 Historial de Escaneos - Antivirus Python")
+            history_window.title("📊 Historial de Escaneos - Bot Python")
             history_window.geometry("900x600")
             history_window.minsize(700, 500)
             history_window.configure(bg=self.get_color('background'))
 
             # Configurar icono si existe
             try:
-                history_window.iconphoto(False, tk.PhotoImage(file="img/icon.png"))
+                history_window.iconphoto(False, tk.PhotoImage(file=resource_path("img/icono.png")))
             except:
                 pass
 
@@ -764,6 +852,10 @@ class AntivirusApp:
             stats_frame.pack(fill=tk.X, pady=(0, 20))
 
             # Obtener estadísticas
+            if self.db_connection is None:
+                messagebox.showerror("Error", "No hay conexión a la base de datos")
+                history_window.destroy()
+                return
             cursor = self.db_connection.cursor()
             cursor.execute("SELECT COUNT(*) FROM scan_history")
             total_scans = cursor.fetchone()[0]
@@ -899,6 +991,9 @@ class AntivirusApp:
     def refresh_history_window(self, tree):
         """Actualizar los datos del historial"""
         try:
+            if self.db_connection is None:
+                messagebox.showerror("Error", "No hay conexión a la base de datos")
+                return
             # Limpiar el tree
             for item in tree.get_children():
                 tree.delete(item)
@@ -913,67 +1008,25 @@ class AntivirusApp:
         except sqlite3.Error as e:
             messagebox.showerror("Error", f"No se pudo actualizar el historial: {e}")
 
-    def show_heatmap(self):
-        # Crear una nueva ventana para el Mapa de Calor
-        heatmap_window = tk.Toplevel(self.root)
-        heatmap_window.title("Mapa de Calor de Infecciones")
-        heatmap_window.geometry("800x600")
-
-        # Obtener datos de la base de datos
-        cursor = self.db_connection.cursor()
-        cursor.execute("SELECT file_path FROM scan_history WHERE is_infected = 1")
-        infected_files = cursor.fetchall()
-
-        print("Archivos infectados obtenidos de la base de datos:", infected_files)  # Depuración
-
-        if not infected_files:
-            messagebox.showinfo("Sin datos", "No hay datos disponibles para generar el mapa de calor.")
-            heatmap_window.destroy()
-            return
-
-        # Contar infecciones por directorio
-        directory_counts = {}
-        for file_path, in infected_files:
-            directory = os.path.dirname(file_path)
-            directory_counts[directory] = directory_counts.get(directory, 0) + 1
-
-        print("Conteo de infecciones por directorio:", directory_counts)  # Depuración
-
-        directories = list(directory_counts.keys())
-        counts = list(directory_counts.values())
-
-        # Crear el gráfico
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.barh(directories, counts, color="red")
-        ax.set_xlabel("Número de Infecciones")
-        ax.set_ylabel("Directorios")
-        ax.set_title("Mapa de Calor de Infecciones")
-        plt.tight_layout()
-
-        # Integrar el gráfico en la ventana de Tkinter
-        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg # type: ignore
-        canvas = FigureCanvasTkAgg(fig, master=heatmap_window)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-        # Botón para cerrar la ventana
-        ttk.Button(heatmap_window, text="Cerrar", command=heatmap_window.destroy).pack(pady=10)
-
     def show_dashboard(self):
         """Crear una ventana de dashboard moderna con estadísticas visuales"""
         dashboard_window = tk.Toplevel(self.root)
-        dashboard_window.title("📈 Dashboard Estadístico - Antivirus Python")
+        dashboard_window.title("📈 Dashboard Estadístico - Bot Python")
         dashboard_window.geometry("1000x700")
         dashboard_window.minsize(800, 600)
         dashboard_window.configure(bg=self.get_color('background'))
 
         # Configurar icono si existe
         try:
-            dashboard_window.iconphoto(False, tk.PhotoImage(file="img/icon.png"))
+            dashboard_window.iconphoto(False, tk.PhotoImage(file=resource_path("img/icono.png")))
         except:
             pass
 
         # Obtener datos de la base de datos
+        if self.db_connection is None:
+            messagebox.showerror("Error", "No hay conexión a la base de datos")
+            dashboard_window.destroy()
+            return
         cursor = self.db_connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM scan_history")
         total_scanned = cursor.fetchone()[0]
@@ -1103,12 +1156,11 @@ class AntivirusApp:
         chart_controls = tk.Frame(control_frame, bg=self.get_color('surface'))
         chart_controls.pack(fill=tk.X, padx=20, pady=(0, 15))
 
-        chart_type_var = tk.StringVar(value="Gráfico Circular")
+        chart_type_var = tk.StringVar(value="🃏 Tarjetas Visuales")
         chart_types = [
-            "Gráfico Circular",
-            "Gráfico de Barras",
-            "Gráfico de Línea",
-            "Gráfico de Área"
+            "🃏 Tarjetas Visuales",
+            "🔥 Mapa de Intensidad",
+            "🎯 Gráfico de Dona"
         ]
 
         tk.Label(chart_controls,
@@ -1135,79 +1187,48 @@ class AntivirusApp:
         chart_frame.pack(fill=tk.BOTH, expand=True)
 
         def draw_chart():
-            """Dibujar el gráfico según el tipo seleccionado"""
-            # Limpiar el marco del gráfico
-            for widget in chart_frame.winfo_children():
-                widget.destroy()
+            """Dibujar el gráfico según el tipo seleccionado usando solo tkinter"""
+            try:
+                # Limpiar el marco del gráfico
+                for widget in chart_frame.winfo_children():
+                    widget.destroy()
 
-            # Configurar el estilo de matplotlib para el tema actual
-            plt.style.use('default')
-            if self.current_theme == 'dark':
-                plt.rcParams.update({
-                    'figure.facecolor': self.get_color('surface'),
-                    'axes.facecolor': self.get_color('surface'),
-                    'axes.edgecolor': self.get_color('border'),
-                    'axes.labelcolor': self.get_color('text_primary'),
-                    'text.color': self.get_color('text_primary'),
-                    'xtick.color': self.get_color('text_primary'),
-                    'ytick.color': self.get_color('text_primary')
-                })
+                # Verificar que tenemos datos válidos
+                if not values or not labels:
+                    error_label = tk.Label(chart_frame,
+                                         text="❌ Error: No hay datos para mostrar",
+                                         font=("Segoe UI", 12, "bold"),
+                                         bg=self.get_color('surface'),
+                                         fg=self.get_color('danger'))
+                    error_label.pack(expand=True)
+                    return
 
-            # Crear el gráfico según el tipo seleccionado
-            fig, ax = plt.subplots(figsize=(8, 5))
-            fig.patch.set_facecolor(self.get_color('surface'))
-            chart_type = chart_type_var.get()
+                chart_type = chart_type_var.get()
+                
+                # Usar solo gráficos alternativos con tkinter
+                if chart_type == "🃏 Tarjetas Visuales":
+                    # Mostrar información en formato de tarjetas
+                    self.draw_card_chart(chart_frame, values, labels, chart_type)
+                elif chart_type == "🔥 Mapa de Intensidad":
+                    # Usar mapa de calor alternativo
+                    self.draw_heatmap_chart(chart_frame, values, labels)
+                elif chart_type == "🎯 Gráfico de Dona":
+                    # Usar gráfico circular tipo dona
+                    self.draw_donut_chart(chart_frame, values, labels)
+                else:
+                    # Fallback por defecto
+                    self.draw_card_chart(chart_frame, values, labels, chart_type)
 
-            if chart_type == "Gráfico Circular":
-                wedges, texts, autotexts = ax.pie(values, labels=labels, autopct='%1.1f%%',
-                                                startangle=90, colors=colors,
-                                                textprops={'fontsize': 10, 'color': self.get_color('text_primary')})
-                ax.set_title("Distribución de Archivos Escaneados",
-                           fontsize=14, fontweight='bold', color=self.get_color('text_primary'))
-
-            elif chart_type == "Gráfico de Barras":
-                bars = ax.bar(labels, values, color=colors, alpha=0.8, edgecolor=self.get_color('border'))
-                ax.set_title("Distribución de Archivos Escaneados",
-                           fontsize=14, fontweight='bold', color=self.get_color('text_primary'))
-                ax.set_ylabel("Cantidad de Archivos", color=self.get_color('text_primary'))
-
-                # Agregar valores en las barras
-                for bar, value in zip(bars, values):
-                    height = bar.get_height()
-                    ax.text(bar.get_x() + bar.get_width()/2., height + max(values)*0.01,
-                           f'{value}', ha='center', va='bottom',
-                           color=self.get_color('text_primary'), fontweight='bold')
-
-            elif chart_type == "Gráfico de Línea":
-                ax.plot(labels, values, marker='o', linewidth=3, markersize=8,
-                       color=self.get_color('primary'), markerfacecolor=self.get_color('primary_light'))
-                ax.set_title("Tendencia de Archivos Escaneados",
-                           fontsize=14, fontweight='bold', color=self.get_color('text_primary'))
-                ax.set_ylabel("Cantidad de Archivos", color=self.get_color('text_primary'))
-                ax.grid(True, alpha=0.3, color=self.get_color('border'))
-
-            elif chart_type == "Gráfico de Área":
-                ax.fill_between(range(len(labels)), values, color=self.get_color('primary'), alpha=0.6)
-                ax.plot(range(len(labels)), values, color=self.get_color('primary_dark'), linewidth=2)
-                ax.set_xticks(range(len(labels)))
-                ax.set_xticklabels(labels)
-                ax.set_title("Área de Distribución de Archivos",
-                           fontsize=14, fontweight='bold', color=self.get_color('text_primary'))
-                ax.set_ylabel("Cantidad de Archivos", color=self.get_color('text_primary'))
-                ax.grid(True, alpha=0.3, color=self.get_color('border'))
-
-            # Configurar el fondo y bordes
-            ax.set_facecolor(self.get_color('surface'))
-            for spine in ax.spines.values():
-                spine.set_color(self.get_color('border'))
-
-            plt.tight_layout()
-
-            # Mostrar el gráfico en la ventana
-            from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg # type: ignore
-            canvas = FigureCanvasTkAgg(fig, master=chart_frame)
-            canvas.draw()
-            canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+            except Exception as e:
+                # Mostrar error si algo falla
+                error_label = tk.Label(chart_frame,
+                                     text=f"❌ Error al crear gráfico: {str(e)[:100]}...",
+                                     font=("Segoe UI", 10),
+                                     bg=self.get_color('surface'),
+                                     fg=self.get_color('danger'),
+                                     wraplength=400)
+                error_label.pack(expand=True, padx=20, pady=20)
+                print(f"Error en draw_chart: {e}")  # Para debugging
 
         # Dibujar el gráfico inicial automáticamente
         chart_type_var.trace_add("write", lambda *args: draw_chart())
@@ -1360,8 +1381,7 @@ class AntivirusApp:
         """Actualizar colores de elementos adicionales de la interfaz"""
         # Actualizar frames principales (solo tk.Frame, no ttk.Frame)
         # self.frame es ttk.Frame, no necesita actualización de bg
-        if hasattr(self, 'content_frame') and isinstance(self.content_frame, tk.Frame):
-            self.content_frame.configure(bg=self.get_color('background'))
+        # content_frame es ttk.Frame, por lo que no necesita configuración de bg
 
         # Actualizar frames de título y subtítulo (solo tk.Frame dentro de ttk.Frame)
         if hasattr(self, 'frame'):
@@ -1533,7 +1553,7 @@ class AntivirusApp:
     def show_scan_completed_dialog(self, total_files, infected_count, infected_files=None):
         """Mostrar diálogo de escaneo completado con opciones avanzadas"""
         dialog = tk.Toplevel(self.root)
-        dialog.title("✅ Escaneo Completado - Antivirus Python")
+        dialog.title("✅ Escaneo Completado - Bot Python")
         dialog.geometry("500x400")
         dialog.resizable(False, False)
         dialog.configure(bg=self.get_color('background'))
@@ -1805,7 +1825,7 @@ class AntivirusApp:
         # Verificar si un archivo es un virus con manejo de errores
         db_conn = None  # Initialize db_conn to None
         try:
-            db_conn = sqlite3.connect("virus_data.db") # Create a new connection
+            db_conn = sqlite3.connect(resource_path("virus_data.db")) # Create a new connection
             cursor = db_conn.cursor()
             
             # Verificar si el hash MD5 está en la tabla de virus
@@ -1867,7 +1887,7 @@ class AntivirusApp:
             self.btn_start_scan.config(state="disabled")
             self.btn_stop_scan.config(state="normal")
             self.txt_result.delete(1.0, tk.END)
-            self.stop_scan = False
+            self.scan_stopped = False
 
             # Feedback visual y de estado
             self.show_status_message("Iniciando escaneo...", 2000, "info")
@@ -1885,7 +1905,7 @@ class AntivirusApp:
             Thread(target=scan_thread).start()
 
     def stop_scan(self):
-        self.stop_scan = True  # Activar la bandera para detener el escaneo
+        self.scan_stopped = True  # Activar la bandera para detener el escaneo
         self.btn_stop_scan.config(state="disabled")  # Deshabilitar el botón "Detener"
 
     # Método para actualizar el progreso en la barra de progreso
@@ -1962,11 +1982,11 @@ class AntivirusApp:
                 nonlocal infected_files
 
                 # Verificar si se solicitó detener el escaneo
-                if self.stop_scan:
+                if self.scan_stopped:
                     return
 
                 # Crear una conexión local a la base de datos para este hilo
-                db_connection = sqlite3.connect("virus_data.db")
+                db_connection = sqlite3.connect(resource_path("virus_data.db"))
                 cursor = db_connection.cursor()
 
                 try:
@@ -2011,7 +2031,7 @@ class AntivirusApp:
             with ThreadPoolExecutor() as executor:
                 for i, _ in enumerate(executor.map(scan_file, file_list), 1):
                     # Verificar si se solicitó detener el escaneo
-                    if self.stop_scan:
+                    if self.scan_stopped:
                         break
 
                     # Actualizar el progreso en la barra de progreso
@@ -2025,7 +2045,7 @@ class AntivirusApp:
             self.toggle_buttons("normal")
             self.btn_stop_scan.config(state="disabled")  # Deshabilitar el botón "Detener"
 
-            if not self.stop_scan:
+            if not self.scan_stopped:
                 # Usar el nuevo diálogo de escaneo completado
                 self.show_scan_completed_dialog(total_files, infected_count, infected_files if infected_count > 0 else None)
             else:
@@ -2120,7 +2140,7 @@ class AntivirusApp:
         """Escaneo completo del sistema con recopilación asíncrona de archivos"""
         # Resetear variables
         self.file_list = []
-        self.stop_scan = False
+        self.scan_stopped = False
         self.collection_cancelled = False
 
         # Crear ventana de progreso para la recopilación
@@ -2336,6 +2356,398 @@ class AntivirusApp:
                 self.collection_window.destroy()
             except:
                 pass
+
+
+
+    def draw_card_chart(self, parent_frame, values, labels, chart_type="🃏 Tarjetas Visuales"):
+        """Crear gráfico tipo tarjetas mejorado para mostrar la distribución"""
+        try:
+            # Verificar que tenemos datos válidos
+            if not values or not labels:
+                error_label = tk.Label(parent_frame,
+                                     text="❌ No hay datos para mostrar en las tarjetas",
+                                     font=("Segoe UI", 12, "bold"),
+                                     bg=self.get_color('surface'),
+                                     fg=self.get_color('danger'))
+                error_label.pack(expand=True, pady=50)
+                return
+
+            total = sum(values)
+            
+            # Título específico según el tipo de gráfico
+            title_text = "🃏 Tarjetas Visuales de Datos"
+            title_label = tk.Label(parent_frame,
+                                 text=title_text,
+                                 font=("Segoe UI", 14, "bold"),
+                                 bg=self.get_color('surface'),
+                                 fg=self.get_color('text_primary'))
+            title_label.pack(pady=(10, 20))
+            
+            # Frame principal para las tarjetas
+            main_cards_frame = tk.Frame(parent_frame, bg=self.get_color('surface'))
+            main_cards_frame.pack(fill=tk.X, expand=True, padx=20, pady=10)
+
+            # Configuración de colores e iconos
+            colors = [self.get_color('success'), self.get_color('danger')]
+            icons = ['🛡️', '🦠']
+
+            for i, (label, value) in enumerate(zip(labels, values)):
+                percentage = (value / total * 100) if total > 0 else 0
+                
+                # Container para cada tarjeta con sombra
+                card_container = tk.Frame(main_cards_frame, bg=self.get_color('surface'))
+                card_container.pack(side=tk.LEFT, padx=15, pady=10, fill=tk.BOTH, expand=True)
+                
+                # Tarjeta principal
+                card = tk.Frame(card_container, bg=colors[i % len(colors)], relief=tk.RAISED, bd=2)
+                card.pack(fill=tk.BOTH, expand=True)
+
+                # Icono
+                icon_label = tk.Label(card,
+                                    text=icons[i % len(icons)],
+                                    font=("Segoe UI", 36),
+                                    bg=colors[i % len(colors)],
+                                    fg="white")
+                icon_label.pack(pady=(20, 10))
+
+                # Valor principal
+                value_label = tk.Label(card,
+                                     text=f"{value:,}",
+                                     font=("Segoe UI", 24, "bold"),
+                                     bg=colors[i % len(colors)],
+                                     fg="white")
+                value_label.pack(pady=5)
+
+                # Porcentaje
+                percentage_label = tk.Label(card,
+                                          text=f"{percentage:.1f}%",
+                                          font=("Segoe UI", 16, "bold"),
+                                          bg=colors[i % len(colors)],
+                                          fg="white")
+                percentage_label.pack(pady=5)
+
+                # Etiqueta descriptiva
+                label_text = tk.Label(card,
+                                    text=label,
+                                    font=("Segoe UI", 12, "bold"),
+                                    bg=colors[i % len(colors)],
+                                    fg="white",
+                                    wraplength=150)
+                label_text.pack(pady=(10, 20))
+
+            # Estadísticas adicionales
+            stats_frame = tk.Frame(parent_frame, bg=self.get_color('surface_alt'), relief=tk.FLAT, bd=1)
+            stats_frame.pack(fill=tk.X, pady=(20, 10), padx=20)
+
+            stats_title = tk.Label(stats_frame,
+                                 text="📊 Resumen Estadístico",
+                                 font=("Segoe UI", 12, "bold"),
+                                 bg=self.get_color('surface_alt'),
+                                 fg=self.get_color('text_primary'))
+            stats_title.pack(pady=(15, 10))
+
+            safe_ratio = (values[0] / total * 100) if total > 0 else 0
+            stats_text = f"Total de Archivos: {total:,} | Archivos Seguros: {safe_ratio:.1f}% | Estado: {'SEGURO' if safe_ratio > 90 else 'REQUIERE ATENCIÓN'}"
+            
+            stats_label = tk.Label(stats_frame,
+                                 text=stats_text,
+                                 font=("Segoe UI", 10),
+                                 bg=self.get_color('surface_alt'),
+                                 fg=self.get_color('text_secondary'))
+            stats_label.pack(pady=(0, 15))
+
+        except Exception as e:
+            print(f"Error en draw_card_chart: {e}")
+            # Mostrar error en el frame
+            error_label = tk.Label(parent_frame,
+                                 text=f"❌ Error al crear tarjetas visuales: {str(e)}",
+                                 font=("Segoe UI", 12),
+                                 bg=self.get_color('surface'),
+                                 fg=self.get_color('danger'))
+            error_label.pack(expand=True, padx=20, pady=20)
+
+
+
+    def draw_heatmap_chart(self, parent_frame, values, labels):
+        """Crear visualización tipo mapa de calor alternativo"""
+        try:
+            # Frame para el mapa de calor alternativo
+            heatmap_frame = tk.Frame(parent_frame, bg=self.get_color('surface'))
+            heatmap_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
+            # Título del mapa de calor
+            title_label = tk.Label(heatmap_frame,
+                                 text="🔥 Mapa de Calor - Intensidad de Archivos",
+                                 font=("Segoe UI", 14, "bold"),
+                                 bg=self.get_color('surface'),
+                                 fg=self.get_color('text_primary'))
+            title_label.pack(pady=(0, 20))
+
+            # Crear visualización tipo termómetro para cada categoría
+            max_value = max(values) if values else 1
+            
+            for i, (label, value) in enumerate(zip(labels, values)):
+                # Frame para cada "termómetro"
+                thermo_frame = tk.Frame(heatmap_frame, bg=self.get_color('surface'))
+                thermo_frame.pack(fill=tk.X, pady=10, padx=20)
+
+                # Etiqueta de categoría
+                label_frame = tk.Frame(thermo_frame, bg=self.get_color('surface'))
+                label_frame.pack(fill=tk.X, pady=(0, 5))
+
+                tk.Label(label_frame,
+                        text=f"{label}: {value:,}",
+                        font=("Segoe UI", 12, "bold"),
+                        bg=self.get_color('surface'),
+                        fg=self.get_color('text_primary'),
+                        anchor="w").pack(side=tk.LEFT)
+
+                # Calcular intensidad (0-100%)
+                intensity = (value / max_value) * 100 if max_value > 0 else 0
+
+                # Determinar color basado en la intensidad
+                if intensity > 75:
+                    color = "#dc2626"  # Rojo intenso
+                    intensity_text = "🔥 Muy Alto"
+                elif intensity > 50:
+                    color = "#f59e0b"  # Amarillo/Naranja
+                    intensity_text = "🌡️ Alto"
+                elif intensity > 25:
+                    color = "#10b981"  # Verde
+                    intensity_text = "📊 Medio"
+                else:
+                    color = "#3b82f6"  # Azul
+                    intensity_text = "❄️ Bajo"
+
+                # Barra de intensidad visual
+                intensity_bar_frame = tk.Frame(thermo_frame, bg=self.get_color('surface_alt'), height=30)
+                intensity_bar_frame.pack(fill=tk.X, pady=(0, 5))
+                intensity_bar_frame.pack_propagate(False)
+
+                # Parte llena de la barra (proporcional a la intensidad)
+                if intensity > 0:
+                    filled_width = int(intensity * 3)  # Convertir porcentaje a píxeles aproximados
+                    filled_bar = tk.Frame(intensity_bar_frame, bg=color, height=30)
+                    filled_bar.pack(side=tk.LEFT, fill=tk.Y)
+                    filled_bar.configure(width=filled_width)
+
+                # Etiqueta de intensidad
+                intensity_label = tk.Label(thermo_frame,
+                                          text=f"{intensity_text} ({intensity:.1f}%)",
+                                          font=("Segoe UI", 10),
+                                          bg=self.get_color('surface'),
+                                          fg=color)
+                intensity_label.pack(anchor="e")
+
+            # Leyenda de colores
+            legend_frame = tk.Frame(heatmap_frame, bg=self.get_color('surface'))
+            legend_frame.pack(fill=tk.X, pady=(20, 10), padx=20)
+
+            legend_title = tk.Label(legend_frame,
+                                  text="🎨 Leyenda de Intensidad:",
+                                  font=("Segoe UI", 11, "bold"),
+                                  bg=self.get_color('surface'),
+                                  fg=self.get_color('text_primary'))
+            legend_title.pack(anchor="w", pady=(0, 10))
+
+            # Elementos de la leyenda
+            legend_items = [
+                ("🔥 Muy Alto (75-100%)", "#dc2626"),
+                ("🌡️ Alto (50-75%)", "#f59e0b"),
+                ("📊 Medio (25-50%)", "#10b981"),
+                ("❄️ Bajo (0-25%)", "#3b82f6")
+            ]
+
+            for legend_text, legend_color in legend_items:
+                item_frame = tk.Frame(legend_frame, bg=self.get_color('surface'))
+                item_frame.pack(side=tk.LEFT, padx=(0, 15))
+
+                # Cuadrito de color
+                color_box = tk.Frame(item_frame, bg=legend_color, width=15, height=15)
+                color_box.pack(side=tk.LEFT, padx=(0, 5))
+                color_box.pack_propagate(False)
+
+                # Texto de la leyenda
+                tk.Label(item_frame,
+                        text=legend_text,
+                        font=("Segoe UI", 9),
+                        bg=self.get_color('surface'),
+                        fg=self.get_color('text_secondary')).pack(side=tk.LEFT)
+
+        except Exception as e:
+            print(f"Error en draw_heatmap_chart: {e}")
+
+    def draw_donut_chart(self, parent_frame, values, labels):
+        """Crear visualización circular tipo dona usando tkinter"""
+        try:
+            # Frame para el gráfico de dona
+            donut_frame = tk.Frame(parent_frame, bg=self.get_color('surface'))
+            donut_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
+            # Título del gráfico
+            title_label = tk.Label(donut_frame,
+                                 text="🎯 Gráfico de Dona - Distribución Circular",
+                                 font=("Segoe UI", 14, "bold"),
+                                 bg=self.get_color('surface'),
+                                 fg=self.get_color('text_primary'))
+            title_label.pack(pady=(0, 20))
+
+            # Frame principal para el gráfico
+            main_chart_frame = tk.Frame(donut_frame, bg=self.get_color('surface'))
+            main_chart_frame.pack(fill=tk.BOTH, expand=True)
+
+            # Canvas para dibujar el gráfico circular
+            canvas_size = 300
+            canvas = tk.Canvas(main_chart_frame, 
+                             width=canvas_size, 
+                             height=canvas_size,
+                             bg=self.get_color('surface'),
+                             highlightthickness=0)
+            canvas.pack(side=tk.LEFT, padx=20, pady=20)
+
+            # Calcular datos para el gráfico
+            total = sum(values) if values else 1
+            center_x = canvas_size // 2
+            center_y = canvas_size // 2
+            outer_radius = 100
+            inner_radius = 50
+
+            # Colores para los segmentos
+            colors = [self.get_color('success'), self.get_color('danger'), self.get_color('warning')]
+            
+            # Dibujar los segmentos de la dona
+            start_angle = 0
+            for i, (value, label) in enumerate(zip(values, labels)):
+                # Calcular ángulo del segmento
+                angle = (value / total) * 360 if total > 0 else 0
+                
+                # Dibujar arco exterior
+                canvas.create_arc(
+                    center_x - outer_radius, center_y - outer_radius,
+                    center_x + outer_radius, center_y + outer_radius,
+                    start=start_angle, extent=angle,
+                    fill=colors[i % len(colors)],
+                    outline=self.get_color('background'),
+                    width=2
+                )
+                
+                # Calcular posición para etiqueta
+                mid_angle = start_angle + angle/2
+                label_radius = (outer_radius + inner_radius) / 2
+                label_x = center_x + label_radius * 0.7 * (1 if mid_angle < 180 else -1)
+                label_y = center_y + label_radius * 0.7 * (1 if 90 < mid_angle < 270 else -1)
+                
+                # Agregar etiqueta con porcentaje
+                percentage = (value / total * 100) if total > 0 else 0
+                if percentage > 5:  # Solo mostrar etiqueta si el segmento es suficientemente grande
+                    canvas.create_text(label_x, label_y,
+                                     text=f"{percentage:.1f}%",
+                                     fill="white",
+                                     font=("Segoe UI", 10, "bold"))
+                
+                start_angle += angle
+
+            # Dibujar círculo interior (agujero de la dona)
+            canvas.create_oval(
+                center_x - inner_radius, center_y - inner_radius,
+                center_x + inner_radius, center_y + inner_radius,
+                fill=self.get_color('surface'),
+                outline=self.get_color('border'),
+                width=2
+            )
+
+            # Texto central con total
+            canvas.create_text(center_x, center_y - 10,
+                             text="Total",
+                             fill=self.get_color('text_secondary'),
+                             font=("Segoe UI", 12, "bold"))
+            canvas.create_text(center_x, center_y + 10,
+                             text=f"{total:,}",
+                             fill=self.get_color('text_primary'),
+                             font=("Segoe UI", 16, "bold"))
+
+            # Leyenda lateral
+            legend_frame = tk.Frame(main_chart_frame, bg=self.get_color('surface'))
+            legend_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=20)
+
+            # Título de la leyenda
+            legend_title = tk.Label(legend_frame,
+                                  text="📋 Leyenda",
+                                  font=("Segoe UI", 12, "bold"),
+                                  bg=self.get_color('surface'),
+                                  fg=self.get_color('text_primary'))
+            legend_title.pack(pady=(0, 15))
+
+            # Elementos de la leyenda
+            for i, (label, value) in enumerate(zip(labels, values)):
+                percentage = (value / total * 100) if total > 0 else 0
+                
+                # Frame para cada elemento
+                item_frame = tk.Frame(legend_frame, bg=self.get_color('surface'))
+                item_frame.pack(fill=tk.X, pady=5)
+
+                # Indicador de color
+                color_indicator = tk.Frame(item_frame, 
+                                         bg=colors[i % len(colors)], 
+                                         width=20, height=20)
+                color_indicator.pack(side=tk.LEFT, padx=(0, 10))
+                color_indicator.pack_propagate(False)
+
+                # Texto de la leyenda
+                text_frame = tk.Frame(item_frame, bg=self.get_color('surface'))
+                text_frame.pack(side=tk.LEFT, fill=tk.X)
+
+                tk.Label(text_frame,
+                        text=label,
+                        font=("Segoe UI", 11, "bold"),
+                        bg=self.get_color('surface'),
+                        fg=self.get_color('text_primary'),
+                        anchor="w").pack(fill=tk.X)
+
+                tk.Label(text_frame,
+                        text=f"{value:,} ({percentage:.1f}%)",
+                        font=("Segoe UI", 10),
+                        bg=self.get_color('surface'),
+                        fg=self.get_color('text_secondary'),
+                        anchor="w").pack(fill=tk.X)
+
+            # Estadísticas adicionales
+            stats_frame = tk.Frame(donut_frame, bg=self.get_color('surface_alt'), relief=tk.FLAT, bd=1)
+            stats_frame.pack(fill=tk.X, pady=(20, 0), padx=20)
+
+            stats_title = tk.Label(stats_frame,
+                                 text="📊 Estadísticas del Gráfico Circular",
+                                 font=("Segoe UI", 11, "bold"),
+                                 bg=self.get_color('surface_alt'),
+                                 fg=self.get_color('text_primary'))
+            stats_title.pack(pady=(10, 5))
+
+            # Mostrar dominancia del segmento mayor
+            if values:
+                max_value = max(values)
+                max_index = values.index(max_value)
+                dominance = (max_value / total * 100) if total > 0 else 0
+                
+                stats_text = f"Categoría Dominante: {labels[max_index]} ({dominance:.1f}%) | "
+                stats_text += f"Total de Categorías: {len(values)} | "
+                stats_text += f"Distribución: {'Equilibrada' if dominance < 70 else 'Concentrada'}"
+                
+                stats_label = tk.Label(stats_frame,
+                                     text=stats_text,
+                                     font=("Segoe UI", 10),
+                                     bg=self.get_color('surface_alt'),
+                                     fg=self.get_color('text_secondary'))
+                stats_label.pack(pady=(0, 10))
+
+        except Exception as e:
+            print(f"Error en draw_donut_chart: {e}")
+            # Mostrar error en el frame
+            error_label = tk.Label(parent_frame,
+                                 text=f"❌ Error al crear gráfico de dona: {str(e)}",
+                                 font=("Segoe UI", 12),
+                                 bg=self.get_color('surface'),
+                                 fg=self.get_color('danger'))
+            error_label.pack(expand=True, padx=20, pady=20)
     
     def generate_pdf_report(self):
         # Generar un reporte PDF con manejo de errores
@@ -2346,6 +2758,9 @@ class AntivirusApp:
                 return
 
             # Obtener datos estadísticos de la base de datos
+            if self.db_connection is None:
+                messagebox.showerror("Error", "No hay conexión a la base de datos")
+                return
             cursor = self.db_connection.cursor()
             cursor.execute("SELECT COUNT(*) FROM scan_history")
             total_scanned = cursor.fetchone()[0]
@@ -2360,7 +2775,7 @@ class AntivirusApp:
             # Crear el contenido del PDF
             c = canvas.Canvas(pdf_file, pagesize=letter)
             c.setFont("Helvetica-Bold", 16)
-            c.drawString(100, 750, "Reporte Estadístico de Escaneos - Antivirus Python")
+            c.drawString(100, 750, "Reporte Estadístico de Escaneos - Bot Python")
             c.setFont("Helvetica", 12)
             c.drawString(100, 720, f"Fecha: {time.strftime('%Y-%m-%d %H:%M:%S')}")
             c.drawString(100, 690, f"Total de Archivos Escaneados: {total_scanned}")
@@ -2387,6 +2802,9 @@ class AntivirusApp:
                 writer.writerow(["Archivo", "Estado", "Fecha"])
 
                 # Obtener datos de la base de datos
+                if self.db_connection is None:
+                    messagebox.showerror("Error", "No hay conexión a la base de datos")
+                    return
                 cursor = self.db_connection.cursor()
                 cursor.execute("SELECT file_path, is_infected, scan_date FROM scan_history")
                 results = cursor.fetchall()
@@ -2430,6 +2848,9 @@ class AntivirusApp:
                 return
 
             # Limpiar la tabla de historial de escaneos
+            if self.db_connection is None:
+                messagebox.showerror("Error", "No hay conexión a la base de datos")
+                return
             cursor = self.db_connection.cursor()
             cursor.execute("DELETE FROM scan_history")
             self.db_connection.commit()
@@ -2470,5 +2891,5 @@ class AntivirusApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = AntivirusApp(root)
+    app = BotApp(root)
     root.mainloop()
