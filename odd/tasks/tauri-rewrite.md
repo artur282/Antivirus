@@ -1,7 +1,7 @@
 # Antivirus Rust + Tauri rewrite
 
 Objective: replace the legacy Python/Tkinter antivirus with a Tauri v2 desktop app (Rust backend, React + TypeScript frontend) that preserves file/directory/quick/full scanning, hash detection, history, dashboard, reports, quarantine and themes, with a modern Spanish UI.
-Branch: worktree `glowing-river` (detached HEAD). Delivery: user-owned commits only; agents must not commit, push or tag.
+Branch: `main` contains the rewrite; `legacy-python` preserves the original Python/Tkinter client. Delivery: user-owned commits and pushes.
 Checks: `cargo test -p antivirus-core`, `cargo fmt --check`, `npm run build`, `npm run tauri build` (requires webkit2gtk dev packages; unavailable in this sandbox).
 
 ## Specs
