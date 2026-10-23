@@ -1,0 +1,25 @@
+[package]
+name = "antivirus-tauri"
+version = "0.1.0"
+description = "Desktop antivirus UI built with Tauri"
+authors = ["artur282"]
+edition = "2021"
+license = "MIT"
+
+[lib]
+name = "antivirus_tauri_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+antivirus-core = { path = "../crates/antivirus-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
