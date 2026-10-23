@@ -1,0 +1,53 @@
+.sidebar-version {
+  padding: 0;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.boot-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 28px;
+  background: var(--ground);
+}
+
+.boot-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 420px);
+  padding: 36px 28px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.boot-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 2px;
+  color: var(--accent);
+}
+
+.boot-card h1 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.boot-card p {
+  max-width: 44ch;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .sidebar-version {
+    display: none;
+  }
+}
