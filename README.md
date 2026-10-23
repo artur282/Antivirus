@@ -1,140 +1,107 @@
-# 🛡️ Antivirus Python
+# Antivirus Rust + Tauri
 
-<div align="center">
+Aplicación de escritorio para escanear archivos y carpetas, detectar amenazas por hash, gestionar cuarentena y consultar el historial de análisis. Reescritura del antiguo cliente Python/Tkinter sobre Tauri v2, Rust y React.
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+## Características
 
-_Un antivirus moderno, eficiente y de código abierto desarrollado en Python_
+- Escaneo de archivo, carpeta, zonas críticas y sistema completo.
+- Detección por MD5, SHA1 y SHA256 contra `virus_data.db`.
+- Progreso en tiempo real y cancelación de análisis.
+- Historial filtrable con paginación y limpieza confirmada.
+- Panel con totales, tasa de infección, distribución y actividad de 14 días.
+- Exportación de reportes CSV y PDF.
+- Cuarentena con restauración y eliminación definitiva confirmada.
+- Tema claro y oscuro persistido localmente.
+- Interfaz en español, sin dependencias de UI externas.
 
-</div>
+## Estructura
 
-## 🌟 Descripción
-
-Antivirus Python es una solución de seguridad de código abierto que combina la potencia del análisis de hashes con una interfaz gráfica moderna y amigable. Diseñado para proporcionar protección en tiempo real contra amenazas, este antivirus implementa técnicas avanzadas de detección y ofrece una suite completa de herramientas de análisis y reportes.
-
-## ✨ Características Principales
-
-- 🔍 **Múltiples Tipos de Escaneo**
-
-  - Escaneo de archivos individuales
-  - Escaneo de directorios completos
-  - Escaneo rápido de zonas críticas
-  - Escaneo completo del sistema
-
-- 🛡️ **Detección Avanzada**
-
-  - Análisis mediante múltiples algoritmos de hash (MD5, SHA1, SHA256)
-  - Comparación con base de datos de firmas
-  - Detección en tiempo real
-
-- 📊 **Dashboard Estadístico**
-
-  - Visualización de datos de escaneo
-  - Múltiples tipos de gráficos
-  - Análisis de tendencias
-
-- 📝 **Generación de Reportes**
-
-  - Exportación a PDF
-  - Exportación a CSV
-  - Historial detallado de escaneos
-
-- 🎨 **Interfaz Moderna**
-
-  - Temas claro y oscuro
-  - Diseño responsive
-  - Interfaz intuitiva
-
-- 🔒 **Gestión de Amenazas**
-  - Sistema de cuarentena
-  - Eliminación segura
-  - Registro de actividades cifrado
-
-## 🔧 Requisitos Técnicos
-
-- Python 3.8 o superior
-- Sistema operativo: Windows/Linux/MacOS
-- Acceso de administrador (para escaneo completo)
-
-## 📦 Instalación
-
-1. Clona el repositorio:
-
-   ```bash
-   git clone https://github.com/artur282/Antivirus.git
-   cd antivirus-python
-   ```
-
-2. Crea un entorno virtual (recomendado):
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # En Linux/Mac
-   # o
-   venv\Scripts\activate  # En Windows
-   ```
-
-3. Instala las dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Desconprimir virus_data.db.7z
-
-## 🚀 Uso
-
-1. Ejecuta la aplicación:
-
-   ```bash
-   python main.py
-   ```
-
-2. Desde la interfaz principal puedes:
-   - Seleccionar el tipo de escaneo
-   - Configurar opciones
-   - Ver estadísticas
-   - Generar reportes
-
-## 🏗️ Arquitectura
-
-El proyecto está estructurado en varios componentes principales:
-
-- **GUI**: Implementada con Tkinter para una experiencia de usuario fluida
-- **Motor de Escaneo**: Sistema multihilo para análisis eficiente
-- **Base de Datos**: SQLite para almacenamiento de datos y firmas
-- **Sistema de Reportes**: Generación de informes en PDF y CSV
-- **Módulo de Seguridad**: Gestión de amenazas y cuarentena
-
-## 📋 Dependencias Principales
-
-```
-matplotlib==3.7.2
-reportlab==4.0.4
-cryptography==41.0.4
+```text
+crates/antivirus-core/   Motor de escaneo, base de datos, reportes y cuarentena
+src-tauri/               Shell Tauri v2, comandos y estado de la aplicación
+src/                     Interfaz React + TypeScript
+src/ui/                  Componentes compartidos
+src/features/            Vistas de escaneo, historial, panel y reportes
+src/styles/              Sistema visual y estilos por vista
+public/fonts/            IBM Plex Sans y IBM Plex Mono autoalojadas
+docs/contracts.md        Contrato de comandos, tipos y propiedad de archivos
 ```
 
-## 🤝 Contribuir
+La implementación original en Python/Tkinter vive en la rama `legacy-python`.
 
-¡Las contribuciones son bienvenidas! Si deseas contribuir:
+## Requisitos
 
-1. Haz fork del proyecto
-2. Crea una rama para tu característica (`git checkout -b feature/AmazingFeature`)
-3. Realiza tus cambios
-4. Commit (`git commit -m 'Add some AmazingFeature'`)
-5. Push a la rama (`git push origin feature/AmazingFeature`)
-6. Abre un Pull Request
+- Rust estable (probado con 1.99).
+- Node.js 22 o superior y npm.
+- Linux: `libwebkit2gtk-4.1-dev`, `libgtk-3-dev`, `librsvg2-dev`, `libayatana-appindicator3-dev` y `build-essential`.
+- Windows: WebView2 y Visual Studio Build Tools.
+- macOS: Xcode Command Line Tools.
 
-## 📄 Licencia
+## Preparación
 
-Este proyecto está bajo la Licencia MIT - vea el archivo [LICENSE](LICENSE) para más detalles.
+```bash
+npm install
+cargo test -p antivirus-core
+```
 
-## ⭐ Soporte
+Descomprime la base de firmas incluida:
 
-Si este proyecto te ha sido útil, considera darle una estrella en GitHub y compartirlo con otros.
+```bash
+7z x virus_data.db.7z
+```
 
----
+La aplicación busca `virus_data.db` en este orden: variable `ANTIVIRUS_SIGNATURES_DB`, directorio actual, directorio padre, directorio del ejecutable y directorio de datos de la aplicación. También puedes seleccionarla desde la propia interfaz cuando falte.
 
-<div align="center">
-Desarrollado con ❤️ por artur282
-</div>
+## Desarrollo
+
+```bash
+npm run tauri dev
+```
+
+Para trabajar solo en la interfaz con el backend de demostración:
+
+```bash
+npm run dev
+```
+
+La vista de demostración permite navegar por escaneo, historial, panel y reportes con datos simulados. Las rutas aceptan `?view=scan`, `?view=history`, `?view=dashboard` y `?view=reports`.
+
+## Compilación
+
+```bash
+npm run build
+npm run tauri build
+```
+
+`npm run tauri build` genera el instalador para la plataforma actual. En Linux necesita los paquetes de desarrollo de WebKitGTK indicados arriba.
+
+## Base de datos
+
+- La base de firmas (`virus_data.db`) es de solo lectura para la aplicación. Los índices de los hashes se crean de forma best-effort; si el archivo no es escribible, el escaneo sigue funcionando.
+- La base de la aplicación (`antivirus.db`) se guarda en el directorio de datos de la aplicación y contiene historial, cuarentena, actividad y ajustes.
+- La ruta de firmas elegida por el usuario se conserva en los ajustes de la aplicación.
+
+## Pruebas y verificación
+
+```bash
+cargo test -p antivirus-core
+cargo fmt --check -p antivirus-core
+npm run build
+```
+
+El motor Rust cubre detección, hashes, historial, estadísticas, cuarentena y reportes con pruebas de integración. La interfaz se verifica con TypeScript estricto y el build de Vite.
+
+Limitaciones conocidas:
+
+- Los escaneos rápido y completo dependen de las rutas del sistema operativo y no se ejecutan en el entorno de pruebas del proyecto.
+- Las ramas específicas de Windows y macOS no se compilan en Linux.
+- La cuarentena entre dispositivos distintos usa una copia y borrado de respaldo; solo se probó el caso de mismo dispositivo.
+- El proyecto no incluye pruebas automatizadas del frontend.
+
+## Diseño
+
+La interfaz usa una dirección visual de «framed sheet»: marco tintado, hoja blanca, tipografía IBM Plex, superficies planas y color reservado para datos y estados. Las fuentes están autoalojadas en `public/fonts/` para que la aplicación funcione sin conexión.
+
+## Licencia
+
+MIT. Consulta el repositorio original para el aviso completo.
