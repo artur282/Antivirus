@@ -1,0 +1,22 @@
+[package]
+name = "antivirus-core"
+version = "0.1.0"
+edition = "2021"
+description = "Scanning, signature lookup, history, reports and quarantine for the antivirus desktop app"
+license = "MIT"
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+hex = "0.4"
+md-5 = "0.10"
+rayon = "1.10"
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+sha1 = "0.10"
+sha2 = "0.10"
+thiserror = "2"
+uuid = { version = "1", features = ["v4"] }
+walkdir = "2.5"
+
+[dev-dependencies]
+tempfile = "3"
