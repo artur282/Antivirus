@@ -104,4 +104,4 @@ La interfaz usa una dirección visual de «framed sheet»: marco tintado, hoja b
 
 ## Licencia
 
-MIT. Consulta el repositorio original para el aviso completo.
+MIT. Consulta [LICENSE](LICENSE) para el aviso completo.
