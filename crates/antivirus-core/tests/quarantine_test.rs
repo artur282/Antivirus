@@ -62,7 +62,7 @@ fn quarantine_reports_per_file_failures() {
     let (dir, core) = setup();
     let missing = dir.path().join("missing.bin");
     let report = core
-        .quarantine_files(&[missing.clone()])
+        .quarantine_files(std::slice::from_ref(&missing))
         .expect("quarantine report");
 
     assert!(report.moved.is_empty());
@@ -77,7 +77,7 @@ fn restore_returns_updated_entry_and_recreates_parents() {
     let (dir, core) = setup();
     let original = common::write_file(&dir.path().join("deep/nested/file.txt"), b"hello");
     let report = core
-        .quarantine_files(&[original.clone()])
+        .quarantine_files(std::slice::from_ref(&original))
         .expect("quarantine");
     let entry = report.moved[0].clone();
 
@@ -101,7 +101,7 @@ fn restore_refuses_to_overwrite_an_existing_file() {
     let (dir, core) = setup();
     let original = common::write_file(&dir.path().join("important.txt"), b"hello");
     let report = core
-        .quarantine_files(&[original.clone()])
+        .quarantine_files(std::slice::from_ref(&original))
         .expect("quarantine");
     let entry = report.moved[0].clone();
 
@@ -125,7 +125,7 @@ fn restore_reports_missing_quarantine_entries_and_files() {
 
     let original = common::write_file(&dir.path().join("gone.txt"), b"hello");
     let report = core
-        .quarantine_files(&[original.clone()])
+        .quarantine_files(std::slice::from_ref(&original))
         .expect("quarantine");
     let entry = report.moved[0].clone();
     fs::remove_file(&entry.stored_path).expect("delete stored file");

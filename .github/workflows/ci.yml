@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: Core tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy -p antivirus-core --all-targets -- -D warnings
+      - run: cargo test -p antivirus-core --locked
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Validate configuration files
+        run: |
+          test -f dist/index.html
+          python3 - <<'PY'
+          import json
+
+          for path in ("package.json", "tsconfig.json", "src-tauri/tauri.conf.json"):
+              with open(path, encoding="utf-8") as handle:
+                  json.load(handle)
+              print(f"parsed {path}")
+          PY
