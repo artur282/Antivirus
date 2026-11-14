@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a reproducible defect
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach live malware, personal files, or credentials. Use a
+        harmless sample such as the EICAR test file when possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is broken, and since when?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Antivirus version or commit
+      placeholder: v0.1.0 or abc1234
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, desktop, session type, Rust and Node versions
+      placeholder: Linux Mint 22.3, Cinnamon, X11, Rust 1.99, Node 22
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Logs, screenshots, or a trace. Remove personal data first.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues before opening this one.
+          required: true
+        - label: I did not attach live malware or personal files.
+          required: true
