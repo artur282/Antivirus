@@ -2,9 +2,9 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::Path;
 
-use md5::Md5;
-use sha1::Sha1;
-use sha2::{Digest, Sha256};
+use md5::{Digest as Md5Digest, Md5};
+use sha1::{Digest as Sha1Digest, Sha1};
+use sha2::Sha256;
 
 const READ_BUFFER_SIZE: usize = 64 * 1024;
 
